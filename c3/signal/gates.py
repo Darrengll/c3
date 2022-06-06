@@ -324,7 +324,7 @@ class Instruction:
 
                 signal += (
                     amp * env * tf.math.exp(tf.complex(tf.zeros_like(phase), phase))
-                )
+                )   # gll: signal is the AWG OUTPUT, mix the IF and base_envelope here,the value type is complex
 
         norm = tf.sqrt(tf.cast(amp_tot_sq, tf.float64))
 

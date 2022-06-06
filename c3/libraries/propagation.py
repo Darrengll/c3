@@ -1,4 +1,5 @@
 "A library for propagators and closely related functions"
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 from typing import Dict
@@ -241,6 +242,7 @@ def pwc(model: Model, gen: Generator, instr: Instruction, folding_stack: list) -
         Matrix representation of the gate.
     """
     signal = gen.generate_signals(instr)
+    # gll: ['values','ts'],len=2
     # Why do I get 0.0 if I print gen.resolution here?! FR
     ts = []
     if model.controllability:
@@ -252,6 +254,11 @@ def pwc(model: Model, gen: Generator, instr: Instruction, folding_stack: list) -
             ts = signal[key]["ts"]
             hks.append(hctrls[key])
         signals = tf.cast(signals, tf.complex128)
+        # # plot control sequence here if needed,plot(ts,signals)
+        # fig,ax = plt.subplots()
+        # ax.plot(ts*1e9, tf.cast(signals[0,:], tf.float64))
+        # plt.show()
+        # #
         hks = tf.cast(hks, tf.complex128)
     else:
         h0 = model.get_Hamiltonian(signal)

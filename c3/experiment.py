@@ -390,7 +390,7 @@ class Experiment:
                     pops_select = 0
                     for label in labels:
                         try:
-                            pops_select += pops[model.state_labels.index(label)]
+                            pops_select += pops[model.state_labels.index(label)] #
                         except ValueError:
                             raise Exception(
                                 f"C3:ERROR:State {label} not defined. Available are:\n"
@@ -483,13 +483,13 @@ class Experiment:
         instructions = self.pmap.instructions
         propagators = {}
         partial_propagators = {}
-        gate_ids = self.opt_gates
+        gate_ids = self.opt_gates  # set by Experiment.set_opt_gates_seq(seqs) or Experiment.set_opt_gates()
         if gate_ids is None:
             gate_ids = instructions.keys()
 
         for gate in gate_ids:
             try:
-                instr = instructions[gate]
+                instr = instructions[gate]   # gate used in the sequences must be available in the instructions
             except KeyError:
                 raise Exception(
                     f"C3:Error: Gate '{gate}' is not defined."
@@ -500,7 +500,7 @@ class Experiment:
             steps = int((instr.t_end - instr.t_start) * self.sim_res)
             result = self.propagation(
                 model, generator, instr, self.folding_stack[steps]
-            )
+            )  # mesolve in C3
             U = result["U"]
             dUs = result["dUs"]
             self.ts = result["ts"]
@@ -530,7 +530,7 @@ class Experiment:
                     U = tf.matmul(SFR, U)
                     self.FR = SFR
                 else:
-                    U = tf.matmul(FR, U)
+                    U = tf.matmul(FR, U)  # if model.use_FR
                     self.FR = FR
             if model.dephasing_strength != 0.0:
                 if not model.lindbladian:

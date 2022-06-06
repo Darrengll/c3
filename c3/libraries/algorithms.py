@@ -521,7 +521,7 @@ def cmaes(x_init, fun=None, fun_grad=None, grad_lookup=None, options={}):
 
     settings = options
 
-    es = cma.CMAEvolutionStrategy(x_init, spread, settings)
+    es = cma.CMAEvolutionStrategy(x_init, spread, settings) # es control the run of optimization algorithm
     iter = 0
     while not es.stop():
 
@@ -552,7 +552,7 @@ def cmaes(x_init, fun=None, fun_grad=None, grad_lookup=None, options={}):
         if batch_noise:
             error = np.random.randn() * noise
         for sample in samples:
-            goal = fun(sample)
+            goal = fun(sample)  # fct_to_min
             if noise:
                 error = np.random.randn() * noise
             if batch_noise or noise:

@@ -177,7 +177,7 @@ class EnvelopeDrag(Envelope):
             t.gradient(env, ts, unconnected_gradients=tf.UnconnectedGradients.ZERO) * dt
         )  # Derivative W.R.T. to bins
         delta = self.params["delta"].get_value()
-        return tf.complex(env, -denv * delta)
+        return tf.complex(env, -denv * delta)  # DRAG here?
 
 
 @comp_reg_deco

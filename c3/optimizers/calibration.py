@@ -106,7 +106,7 @@ class Calibration(Optimizer):
                 fun_grad=self.fct_to_min_autograd,
                 grad_lookup=self.lookup_gradient,
                 options=self.options,
-            )
+            )   # self.algorithm = algorithm.cmaes, do optimization here
         except KeyboardInterrupt:
             pass
         with open(os.path.join(self.logdir, "best_point_" + self.logname), "r") as file:

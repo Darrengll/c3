@@ -26,7 +26,7 @@ def create_experiment():
     sim_res = 100e9
     awg_res = 2e9
     sideband = 50e6
-    lo_freq = 5e9 + sideband
+    lo_freq = freq + sideband
 
     # ### MAKE MODEL
     q1 = chip.Qubit(
@@ -175,6 +175,8 @@ def create_experiment():
     ry90p.comps["d1"]["gauss"].params["xy_angle"].set_value(0.5 * np.pi)
     rx90m.comps["d1"]["gauss"].params["xy_angle"].set_value(np.pi)
     ry90m.comps["d1"]["gauss"].params["xy_angle"].set_value(1.5 * np.pi)
+
+    # Instruction.ideal matrices also need to revise
 
     parameter_map = PMap(
         instructions=[QId, rx90p, ry90p, rx90m, ry90m], model=model, generator=generator

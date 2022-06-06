@@ -1080,7 +1080,7 @@ class AWG(Device):
         """
         Construct the in-phase (I) and quadrature (Q) components of the signal.
         These are universal to either experiment or simulation.
-        In the xperiment these will be routed to AWG and mixer
+        In the experiment these will be routed to AWG and mixer
         electronics, while in the simulation they provide the shapes of the
         instruction fields to be added to the Hamiltonian.
 
@@ -1104,7 +1104,7 @@ class AWG(Device):
         ts = self.create_ts(instr.t_start, instr.t_end, centered=True)
         self.ts = ts
 
-        signal, norm = instr.get_awg_signal(chan, ts)
+        signal, norm = instr.get_awg_signal(chan, ts)  # signal is the AWG OUTPUT
 
         self.amp_tot = norm
         self.signal[chan] = {
