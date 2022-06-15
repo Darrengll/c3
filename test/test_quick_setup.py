@@ -8,7 +8,7 @@ import pickle
 from c3.experiment import Experiment
 
 exp = Experiment()
-exp.load_quick_setup("test/quickstart.hjson")
+exp.load_quick_setup("quickstart.hjson")
 pmap = exp.pmap
 model = pmap.model
 generator = pmap.generator

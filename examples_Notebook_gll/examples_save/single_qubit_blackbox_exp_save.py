@@ -15,16 +15,14 @@ import c3.libraries.tasks as tasks
 
 
 def create_experiment():
-    lindblad = True
+    lindblad = False
     dressed = True
     qubit_lvls = 3
-    freq = 5.3e9
-    anhar = -212e6
-    t1_q1 = 22e-6
-    t2star_q1 = 2e-6
-    qubit_temp = 0
+    freq = 5e9
+    anhar = -210e6
     init_temp = 0
-    t_final = 10e-9  # Time for single qubit gates
+    qubit_temp = 0
+    t_final = 7e-9  # Time for single qubit gates
     sim_res = 100e9
     awg_res = 2e9
     sideband = 50e6
@@ -36,8 +34,8 @@ def create_experiment():
         desc="Qubit 1",
         freq=Qty(
             value=freq,
-            min_val=5.295e9,
-            max_val=5.305e9,
+            min_val=4.995e9,
+            max_val=5.005e9,
             unit="Hz 2pi",
         ),
         anhar=Qty(
@@ -47,18 +45,6 @@ def create_experiment():
             unit="Hz 2pi",
         ),
         hilbert_dim=qubit_lvls,
-        t1=Qty(
-            value=t1_q1,
-            min_val=1e-6,
-            max_val=90e-6,
-            unit='s'
-        ),
-        t2star=Qty(
-            value=t2star_q1,
-            min_val=0.1e-6,
-            max_val=90e-3,
-            unit='s'
-        ),
         temp=Qty(value=qubit_temp, min_val=0.0, max_val=0.12, unit="K"),
     )
 
@@ -88,6 +74,13 @@ def create_experiment():
             "DigitalToAnalog": devices.DigitalToAnalog(
                 name="dac", resolution=sim_res, inputs=1, outputs=1
             ),
+            "Response": devices.Response(
+                name="resp",
+                rise_time=Qty(value=0.3e-9, min_val=0.05e-9, max_val=0.6e-9, unit="s"),
+                resolution=sim_res,
+                inputs=1,
+                outputs=1,
+            ),
             "Mixer": devices.Mixer(name="mixer", inputs=2, outputs=1),
             "VoltsToHertz": devices.VoltsToHertz(
                 name="v_to_hz",
@@ -101,7 +94,8 @@ def create_experiment():
                 "LO": [],
                 "AWG": [],
                 "DigitalToAnalog": ["AWG"],
-                "Mixer": ["LO", "DigitalToAnalog"],
+                "Response": ["DigitalToAnalog"],
+                "Mixer": ["LO", "Response"],
                 "VoltsToHertz": ["Mixer"],
             }
         },
@@ -109,27 +103,30 @@ def create_experiment():
 
     # ### MAKE GATESET
     gauss_params_single = {
-        "amp": Qty(value=0.314, min_val=0.2, max_val=0.5, unit="V"),
+        "amp": Qty(value=0.45, min_val=0.4, max_val=0.6, unit="V"),
         "t_final": Qty(
             value=t_final, min_val=0.5 * t_final, max_val=1.5 * t_final, unit="s"
+        ),
+        "sigma": Qty(
+            value=t_final / 4, min_val=t_final / 8, max_val=t_final / 2, unit="s"
         ),
         "xy_angle": Qty(
             value=0.0, min_val=-0.5 * np.pi, max_val=2.5 * np.pi, unit="rad"
         ),
         "freq_offset": Qty(
-            value=-sideband - 3.417e6,
+            value=-sideband - 0.5e6,
             min_val=-60 * 1e6,
             max_val=-40 * 1e6,
             unit="Hz 2pi",
         ),
-        "delta": Qty(value=-1.771, min_val=-5, max_val=3, unit=""),
+        "delta": Qty(value=-1, min_val=-5, max_val=3, unit=""),
     }
 
     gauss_env_single = pulse.EnvelopeDrag(
         name="gauss",
         desc="Gaussian comp for single-qubit gates",
         params=gauss_params_single,
-        shape=envelopes.cosine,
+        shape=envelopes.gaussian_nonorm,
     )
     nodrive_env = pulse.Envelope(
         name="no_drive",

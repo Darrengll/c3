@@ -11,24 +11,20 @@ import c3.generator.devices as devices
 import c3.libraries.hamiltonians as hamiltonians
 import c3.signal.pulse as pulse
 import c3.libraries.envelopes as envelopes
-import c3.libraries.tasks as tasks
 
 
 def create_experiment():
-    lindblad = True
+    lindblad = False
     dressed = True
     qubit_lvls = 3
-    freq = 5.3e9
-    anhar = -212e6
-    t1_q1 = 22e-6
-    t2star_q1 = 2e-6
+    freq = 5.001234e9
+    anhar = -209.8765e6
     qubit_temp = 0
-    init_temp = 0
-    t_final = 10e-9  # Time for single qubit gates
+    t_final = 7e-9  # Time for single qubit gates
     sim_res = 100e9
     awg_res = 2e9
     sideband = 50e6
-    lo_freq = freq + sideband
+    lo_freq = 5e9 + sideband
 
     # ### MAKE MODEL
     q1 = chip.Qubit(
@@ -36,8 +32,8 @@ def create_experiment():
         desc="Qubit 1",
         freq=Qty(
             value=freq,
-            min_val=5.295e9,
-            max_val=5.305e9,
+            min_val=4.995e9,
+            max_val=5.005e9,
             unit="Hz 2pi",
         ),
         anhar=Qty(
@@ -47,18 +43,6 @@ def create_experiment():
             unit="Hz 2pi",
         ),
         hilbert_dim=qubit_lvls,
-        t1=Qty(
-            value=t1_q1,
-            min_val=1e-6,
-            max_val=90e-6,
-            unit='s'
-        ),
-        t2star=Qty(
-            value=t2star_q1,
-            min_val=0.1e-6,
-            max_val=90e-3,
-            unit='s'
-        ),
         temp=Qty(value=qubit_temp, min_val=0.0, max_val=0.12, unit="K"),
     )
 
@@ -72,11 +56,7 @@ def create_experiment():
     phys_components = [q1]
     line_components = [drive]
 
-    init_ground = tasks.InitialiseGround(
-        init_temp=Qty(value=init_temp, min_val=-0.001, max_val=0.22, unit="K")
-    )
-    task_list = [init_ground]
-    model = Mdl(phys_components, line_components, task_list)
+    model = Mdl(phys_components, line_components)
     model.set_lindbladian(lindblad)
     model.set_dressed(dressed)
 
@@ -109,27 +89,30 @@ def create_experiment():
 
     # ### MAKE GATESET
     gauss_params_single = {
-        "amp": Qty(value=0.314, min_val=0.2, max_val=0.5, unit="V"),
+        "amp": Qty(value=0.45, min_val=0.35, max_val=0.6, unit="V"),
         "t_final": Qty(
             value=t_final, min_val=0.5 * t_final, max_val=1.5 * t_final, unit="s"
+        ),
+        "sigma": Qty(
+            value=t_final / 4, min_val=t_final / 8, max_val=t_final / 2, unit="s"
         ),
         "xy_angle": Qty(
             value=0.0, min_val=-0.5 * np.pi, max_val=2.5 * np.pi, unit="rad"
         ),
         "freq_offset": Qty(
-            value=-sideband - 3.417e6,
+            value=-sideband - 0.5e6,
             min_val=-60 * 1e6,
             max_val=-40 * 1e6,
             unit="Hz 2pi",
         ),
-        "delta": Qty(value=-1.771, min_val=-5, max_val=3, unit=""),
+        "delta": Qty(value=-1, min_val=-5, max_val=3, unit=""),
     }
 
     gauss_env_single = pulse.EnvelopeDrag(
         name="gauss",
         desc="Gaussian comp for single-qubit gates",
         params=gauss_params_single,
-        shape=envelopes.cosine,
+        shape=envelopes.gaussian_nonorm,
     )
     nodrive_env = pulse.Envelope(
         name="no_drive",
@@ -178,8 +161,6 @@ def create_experiment():
     ry90p.comps["d1"]["gauss"].params["xy_angle"].set_value(0.5 * np.pi)
     rx90m.comps["d1"]["gauss"].params["xy_angle"].set_value(np.pi)
     ry90m.comps["d1"]["gauss"].params["xy_angle"].set_value(1.5 * np.pi)
-
-    # Instruction.ideal matrices also need to revise
 
     parameter_map = PMap(
         instructions=[QId, rx90p, ry90p, rx90m, ry90m], model=model, generator=generator

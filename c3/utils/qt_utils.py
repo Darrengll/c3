@@ -378,7 +378,8 @@ def T1_sequence(length, target):
         Relaxation sequence.
 
     """
-    wait = ["Id"]
+    # wait = ["Id"]
+    wait = [f"id[{str(target)}]"]
     prepare_1 = [f"rx90p[{str(target)}]"] * 2
     S = []
     S.extend(prepare_1)
