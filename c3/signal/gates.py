@@ -320,6 +320,7 @@ class Instruction:
                 freq_offset = comp.params["freq_offset"].get_value()
                 phase = -xy_angle - freq_offset * ts_off
                 env = comp.get_shape_values(ts_off, t_end - t_start)
+                # print('frequency offset is{}MHz,amp is {}mV'.format(freq_offset/(2*np.pi)/1e6, amp_re*1000))
                 env = tf.cast(env, tf.complex128)
 
                 signal += (

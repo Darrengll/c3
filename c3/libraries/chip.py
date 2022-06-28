@@ -216,7 +216,8 @@ class Qubit(PhysicalComponent):
         Ls = []
         if "t1" in self.params:
             t1 = self.params["t1"].get_value()
-            gamma = (0.5 / t1) ** 0.5
+            # gamma = (0.5 / t1) ** 0.5
+            gamma = (1 / t1) ** 0.5
             L = gamma * self.collapse_ops["t1"]
             Ls.append(L)
             if "temp" in self.params:
@@ -234,7 +235,9 @@ class Qubit(PhysicalComponent):
                 L = gamma * tf.matmul(self.collapse_ops["temp"], det_bal_mat)
                 Ls.append(L)
         if "t2star" in self.params:
-            gamma = (0.5 / self.params["t2star"].get_value()) ** 0.5
+            t2star = self.params["t2star"].get_value()
+            gamma_phi = 1/t2star-1/(2*t1)
+            gamma = (0.5*gamma_phi) ** 0.5
             L = gamma * self.collapse_ops["t2star"]
             Ls.append(L)
         if not Ls:

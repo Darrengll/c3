@@ -542,7 +542,7 @@ def cmaes(x_init, fun=None, fun_grad=None, grad_lookup=None, options={}):
                 print("C3:STATUS:Goal sigma reached. Stopping CMA.")
                 break
 
-        samples = es.ask()
+        samples = es.ask()  # update x every iteration
         if init_point and iter == 0:
             # convert x_init to numpy array before appending
             x_init_numpy = tf.concat(x_init, axis=0).numpy()

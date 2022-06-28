@@ -171,6 +171,7 @@ class OptimalControl(Optimizer):
         tf.float64
             Value of the goal function
         """
+        print('goal run')
         self.pmap.set_parameters_scaled(current_params)
         dims = self.pmap.model.dims
         propagators = self.exp.compute_propagators()

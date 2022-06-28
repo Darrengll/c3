@@ -404,7 +404,8 @@ def ramsey_sequence(length, target):
         Dephasing sequence.
 
     """
-    wait = ["id"]
+    # wait = ["id"]
+    wait = [f"id[{str(target)}]"]
     rotate_90 = [f"rx90p[{str(target)}]"]
     S = []
     S.extend(rotate_90)

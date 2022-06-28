@@ -104,7 +104,7 @@ model.set_dressed(False)
 
 hdrift, hks = model.get_Hamiltonians()
 
-with open("test/model.pickle", "rb") as filename:
+with open("model.pickle", "rb") as filename:
     test_data = pickle.load(filename)
 
 

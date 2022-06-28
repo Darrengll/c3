@@ -222,6 +222,8 @@ def gen_u_rk4(h, dt, dim):
     U = tf.stack(U)
     return tf.transpose(U)
 
+# boundary,above is rk4,below is pwc
+
 
 @unitary_deco
 def pwc(model: Model, gen: Generator, instr: Instruction, folding_stack: list) -> Dict:
@@ -242,6 +244,7 @@ def pwc(model: Model, gen: Generator, instr: Instruction, folding_stack: list) -
         Matrix representation of the gate.
     """
     signal = gen.generate_signals(instr)
+    # print(3)
     # gll: ['values','ts'],len=2
     # Why do I get 0.0 if I print gen.resolution here?! FR
     ts = []
@@ -279,8 +282,12 @@ def pwc(model: Model, gen: Generator, instr: Instruction, folding_stack: list) -
 
     batch_size = tf.constant(len(h0), tf.int32)
 
-    dUs = tf_batch_propagate(h0, hks, signals, dt, batch_size=batch_size)
-
+    if model.lindbladian:
+        col_ops = model.get_Lindbladians()
+        dUs = tf_propagation_lind(h0, hks, col_ops, signals, dt)
+    else:
+        dUs = tf_batch_propagate(h0, hks, signals, dt, batch_size=batch_size)  # don't contain lindblad
+        # dUs = tf_propagation(h0, hks, signals, dt)
     # U = tf_matmul_left(tf.cast(dUs, tf.complex128))
     U = tf_matmul_n(dUs, folding_stack)
 
@@ -325,6 +332,7 @@ def tf_dU_of_t(h0, hks, cflds_t, dt):
     # terms = int(1e12 * dt) + 2
     # dU = tf_expm(-1j * h * dt, terms)
     # TODO Make an option for the exponentation method
+    dt = tf.cast(dt, tf.complex128)  # by llguo because error
     dU = tf.linalg.expm(-1j * h * dt)
     return dU
 
@@ -446,6 +454,7 @@ def tf_batch_propagate(hamiltonian, hks, signals, dt, batch_size):
                 i, hamiltonian[i * batch_size : i * batch_size + batch_size]
             )
 
+    # print(4)
     dUs_array = tf.TensorArray(tf.complex128, size=batches, infer_shape=False)
     for i in range(batches):
         x = batch_array.read(i)

@@ -54,7 +54,7 @@ class Model:
         self.__hamiltonians = None
         self.__dressed_hamiltonians = None
         if subsystems:
-            self.set_components(subsystems, couplings, max_excitations)
+            self.set_components(subsystems, couplings, max_excitations)  # Check: llguo
         if tasks:
             self.set_tasks(tasks)
         self.controllability = True

@@ -11,7 +11,7 @@ import c3.libraries.algorithms as algorithms
 # Libs and helpers
 from c3.libraries.propagation import rk4
 
-with open("test/two_qubit_data.pickle", "rb") as filename:
+with open("two_qubit_data.pickle", "rb") as filename:
     test_data = pickle.load(filename)
 
 
@@ -63,7 +63,7 @@ def test_propagation(get_two_qubit_chip) -> None:
 def test_init_point(get_OC_optimizer) -> None:
     """Check that a previous best point can be loaded as an initial point."""
     opt = get_OC_optimizer
-    opt.load_best("test/best_point_open_loop.c3log")
+    opt.load_best("best_point_open_loop.c3log")
 
 
 @pytest.mark.slow

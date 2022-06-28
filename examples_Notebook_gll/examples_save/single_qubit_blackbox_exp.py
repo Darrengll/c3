@@ -14,20 +14,26 @@ import c3.libraries.envelopes as envelopes
 import c3.libraries.tasks as tasks
 
 
-def create_experiment():
-    lindblad = True
+# ##change log
+# change 1:change 1q gate envelope from cosine to cosine_norm
+# change 2: moving sideband frequency to the top of the file
+# change 3:sideband change from 50e6 to 500e6
+sideband = 500e6
+
+
+def create_experiment(lindblad=False, t_final=10e-9, temperature=0.0, drag_alpha=2.36):
     dressed = True
     qubit_lvls = 3
     freq = 5.3e9
     anhar = -212e6
-    t1_q1 = 22e-6
-    t2star_q1 = 2e-6
-    qubit_temp = 0
-    init_temp = 0
-    t_final = 10e-9  # Time for single qubit gates
+    t1_q1 = 20e-6
+    t2star_q1 = 6e-6
+    qubit_temp = temperature
+    init_temp = temperature
+    t_final_id = 1e-9
     sim_res = 100e9
     awg_res = 2e9
-    sideband = 50e6
+    drag_delta = drag_alpha/(2*np.pi*anhar/1e9)
     lo_freq = freq + sideband
 
     # ### MAKE MODEL
@@ -49,14 +55,14 @@ def create_experiment():
         hilbert_dim=qubit_lvls,
         t1=Qty(
             value=t1_q1,
-            min_val=1e-6,
-            max_val=90e-6,
+            min_val=0.1e-6,
+            max_val=100e-6,
             unit='s'
         ),
         t2star=Qty(
             value=t2star_q1,
             min_val=0.1e-6,
-            max_val=90e-3,
+            max_val=100e-6,
             unit='s'
         ),
         temp=Qty(value=qubit_temp, min_val=0.0, max_val=0.12, unit="K"),
@@ -73,7 +79,7 @@ def create_experiment():
     line_components = [drive]
 
     init_ground = tasks.InitialiseGround(
-        init_temp=Qty(value=init_temp, min_val=-0.001, max_val=0.22, unit="K")
+        init_temp=Qty(value=init_temp, min_val=0, max_val=0.22, unit="K")
     )
     task_list = [init_ground]
     model = Mdl(phys_components, line_components, task_list)
@@ -109,7 +115,7 @@ def create_experiment():
 
     # ### MAKE GATESET
     gauss_params_single = {
-        "amp": Qty(value=0.314, min_val=0.2, max_val=0.5, unit="V"),
+        "amp": Qty(value=0.314*2, min_val=0.05, max_val=0.7, unit="V"),
         "t_final": Qty(
             value=t_final, min_val=0.5 * t_final, max_val=1.5 * t_final, unit="s"
         ),
@@ -117,25 +123,25 @@ def create_experiment():
             value=0.0, min_val=-0.5 * np.pi, max_val=2.5 * np.pi, unit="rad"
         ),
         "freq_offset": Qty(
-            value=-sideband - 3.417e6,
-            min_val=-60 * 1e6,
-            max_val=-40 * 1e6,
+            value=-sideband - 3.4e6,
+            min_val=-30 * 1e6-sideband,
+            max_val=10 * 1e6-sideband,
             unit="Hz 2pi",
         ),
-        "delta": Qty(value=-1.771, min_val=-5, max_val=3, unit=""),
+        "delta": Qty(value=drag_delta, min_val=-5, max_val=3, unit=""),
     }
 
     gauss_env_single = pulse.EnvelopeDrag(
         name="gauss",
         desc="Gaussian comp for single-qubit gates",
         params=gauss_params_single,
-        shape=envelopes.cosine,
+        shape=envelopes.cosine_norm,
     )
     nodrive_env = pulse.Envelope(
         name="no_drive",
         params={
             "t_final": Qty(
-                value=t_final, min_val=0.5 * t_final, max_val=1.5 * t_final, unit="s"
+                value=t_final_id, min_val=0.5e-9, max_val=1.5 * t_final, unit="s"
             )
         },
         shape=envelopes.no_drive,
@@ -143,7 +149,7 @@ def create_experiment():
     carrier_parameters = {
         "freq": Qty(
             value=lo_freq,
-            min_val=4.5e9,
+            min_val=4.0e9,
             max_val=6e9,
             unit="Hz 2pi",
         ),
@@ -155,30 +161,42 @@ def create_experiment():
         params=carrier_parameters,
     )
 
-    rx90p = gates.Instruction(
-        name="rx90p", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
-    )
     QId = gates.Instruction(
-        name="id", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
+        name="id", t_start=0.0, t_end=t_final_id, channels=["d1"], targets=[0]
     )
-
-    rx90p.add_component(gauss_env_single, "d1")
-    rx90p.add_component(carr, "d1")
     QId.add_component(nodrive_env, "d1")
     QId.add_component(copy.deepcopy(carr), "d1")
     QId.comps["d1"]["carrier"].params["framechange"].set_value(
-        (-sideband * t_final) % (2 * np.pi)
+        (-sideband * t_final_id) % (2 * np.pi)
     )
-    ry90p = copy.deepcopy(rx90p)
-    ry90p.name = "ry90p"
-    rx90m = copy.deepcopy(rx90p)
-    rx90m.name = "rx90m"
-    ry90m = copy.deepcopy(rx90p)
-    ry90m.name = "ry90m"
-    ry90p.comps["d1"]["gauss"].params["xy_angle"].set_value(0.5 * np.pi)
-    rx90m.comps["d1"]["gauss"].params["xy_angle"].set_value(np.pi)
-    ry90m.comps["d1"]["gauss"].params["xy_angle"].set_value(1.5 * np.pi)
 
+    rx90p = gates.Instruction(
+        name="rx90p", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
+    )
+    rx90p.add_component(copy.deepcopy(gauss_env_single), "d1")
+    rx90p.add_component(copy.deepcopy(carr), "d1")
+
+    ry90p = gates.Instruction(
+        name="ry90p", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
+    )
+    ry90p.add_component(copy.deepcopy(gauss_env_single), "d1")
+    ry90p.add_component(copy.deepcopy(carr), "d1")
+
+    rx90m = gates.Instruction(
+        name="rx90m", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
+    )
+    rx90m.add_component(copy.deepcopy(gauss_env_single), "d1")
+    rx90m.add_component(copy.deepcopy(carr), "d1")
+
+    ry90m = gates.Instruction(
+        name="ry90m", t_start=0.0, t_end=t_final, channels=["d1"], targets=[0]
+    )
+    ry90m.add_component(copy.deepcopy(gauss_env_single), "d1")
+    ry90m.add_component(copy.deepcopy(carr), "d1")
+
+    ry90p.comps["d1"]["gauss"].params["xy_angle"].set_value(1.5 * np.pi)
+    rx90m.comps["d1"]["gauss"].params["xy_angle"].set_value(np.pi)
+    ry90m.comps["d1"]["gauss"].params["xy_angle"].set_value(0.5 * np.pi)
     # Instruction.ideal matrices also need to revise
 
     parameter_map = PMap(
@@ -187,4 +205,6 @@ def create_experiment():
 
     # ### MAKE EXPERIMENT
     exp = Exp(pmap=parameter_map)
+    exp.set_opt_gates(["rx90p[0]", "ry90p[0]", "rx90m[0]", "ry90m[0]"])
     return exp
+

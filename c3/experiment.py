@@ -546,6 +546,7 @@ class Experiment:
                     dephasing_channel = model.get_dephasing_channel(t_final, amps)
                     U = tf.matmul(dephasing_channel, U)
             propagators[gate] = U
+            # print(propagators)
             partial_propagators[gate] = dUs
 
         # TODO we might want to move storing of the propagators to the instruction object

@@ -420,7 +420,7 @@ def gaussian(t, params):
 @env_reg_deco
 def cosine(t, params):
     """
-    Cosine-shaped envelope. Maximum value is 1, area is given by length.
+    Cosine-shaped envelope. Maximum value is 1, area is given by length(t_final/2).
 
     Parameters
     ----------
@@ -434,7 +434,29 @@ def cosine(t, params):
     # TODO Add zeroes for t>t_final
     t_final = tf.cast(params["t_final"].get_value(), tf.float64)
     cos = 0.5 * (1 - tf.cos(2 * np.pi * t / t_final))
+    # print('cosine')
     return tf_complexify(cos)
+
+
+@env_reg_deco
+def cosine_norm(t, params):
+    """
+    Normalized Cosine-shaped envelope. Maximum value is 1, area is Normalized according to 10ns.
+
+    Parameters
+    ----------
+    params : dict
+        t_final : float
+            Total length of the Gaussian.
+        sigma: float
+            Width of the Gaussian.
+
+    """
+    # TODO Add zeroes for t>t_final
+    t_final = tf.cast(params["t_final"].get_value(), tf.float64)
+    cos = 0.5 * (1 - tf.cos(2 * np.pi * t / t_final))/t_final*10e-9
+    return tf_complexify(cos)
+
 
 
 @env_reg_deco

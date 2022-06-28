@@ -3,6 +3,8 @@
 import numpy as np
 import tensorflow as tf
 from typing import List, Dict
+import matplotlib.pyplot as plt
+from c3.utils.FitTool import fitdata
 
 from scipy.optimize import curve_fit
 
@@ -214,6 +216,7 @@ def unitary_infid_set(propagators: dict, instructions: dict, index, dims, n_eval
     for gate, propagator in propagators.items():
         perfect_gate = instructions[gate].get_ideal_gate(dims, index)
         infid = unitary_infid(perfect_gate, propagator, index, dims)
+        print('enter unitary infid_set')
         infids.append(infid)
     return tf.reduce_mean(infids)
 
@@ -281,6 +284,8 @@ def lindbladian_unitary_infid_set(
     for gate, propagator in propagators.items():
         perfect_gate = instructions[gate].get_ideal_gate(dims)
         infid = lindbladian_unitary_infid(perfect_gate, propagator, index, dims)
+        # print(gate, perfect_gate, propagator, index, dims)
+        print('enter lindbladian unitary infid_set')
         infids.append(infid)
     return tf.reduce_mean(infids)
 
@@ -521,6 +526,7 @@ def RB(
     logspace=False,
     lindbladian=False,
     padding="",
+    plot=True
 ):
     gate = list(propagators.keys())[0]
     U = propagators[gate]
@@ -548,16 +554,23 @@ def RB(
         return A * r ** (len) + B
 
     bounds = (0, 1)
-    init_guess = [0.9, 0.5, 0.5]
+    means = np.mean(surv_prob, axis=1)
+    B = means[-5]
+    r = 0.9
+    A = means[0] - B
+    init_guess = [r, A, B]
+
     fitted = False
     while not fitted:
         try:
             means = np.mean(surv_prob, axis=1)
             stds = np.std(surv_prob, axis=1) / np.sqrt(len(surv_prob[0]))
-            solution, cov = curve_fit(
-                RB_fit, lengths, means, sigma=stds, bounds=bounds, p0=init_guess
-            )
-            r, A, B = solution
+            # solution, cov = curve_fit(
+            #     RB_fit, lengths, means, sigma=stds, bounds=bounds, p0=init_guess
+            # )
+            # r, A, B = solution
+            F = fitdata(RB_fit, lengths, means, init_guess)
+            r, A, B = F.p
             fitted = True
         except Exception as message:
             print(message)
@@ -587,6 +600,28 @@ def RB(
             lengths = np.append(lengths, new_lengths)
     epc = 0.5 * (1 - r)
     epg = 1 - ((1 - epc) ** (1 / 4))  # TODO: adjust to be mean length of
+
+    if plot:
+        surv_prob = np.array(surv_prob)
+        # comp_surv = np.array(comp_surv)
+        fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex='col')
+        for index, m in enumerate(lengths):
+            ax[1].scatter(m * np.ones((num_seqs, 1)), surv_prob[index, :], s=6, c='r', marker='o')
+            # ax[1].scatter(m * np.ones((num_seqs, 1)), comp_surv[index, :], s=6, c='r', marker='o')
+        ax[1].plot(lengths, means, 'bo', markersize=6)
+        ax[1].plot(lengths, RB_fit(lengths, r, A, B), 'bo-', ms=2, lw=1, label='fit')
+        # ax[1].plot(lengths, comp_means, 'bo', markersize=6)
+        # ax[1].plot(lengths, RB_leakage(lengths, r_leak, A_leak, B_leak), 'bo-', ms=2, lw=1, label='fit')
+        ax[1].set_title('repeat times={:.0f},epc={:.5f}'.format
+                        (num_seqs, epc))
+        # ax[1].set_title('repeat times={:.0f},leakage={:.5f}'.format
+        #                 (num_seqs, leakage))
+        ax[1].set_xlabel('m-Number of Cliffords')
+        ax[1].set_ylabel('P0')
+        # ax[1].set_ylabel('P2')
+        fig.show()
+
+
     return epg
 
 
@@ -615,6 +650,7 @@ def leakage_RB(
     num_seqs: int = 30,
     logspace=False,
     lindbladian=False,
+    plot=True
 ):
     gate = list(propagators.keys())[0]
     U = propagators[gate]
@@ -646,21 +682,23 @@ def leakage_RB(
         return A_leak + B_leak * r_leak ** (len)
 
     bounds = (0, 1)
-    init_guess = [0.9, 0.5, 0.5]
+    init_guess = [0.99999, 0.5, 0.5]
     fitted = False
     while not fitted:
         try:
             comp_means = np.mean(comp_surv, axis=1)
             comp_stds = np.std(comp_surv, axis=1) / np.sqrt(len(comp_surv[0]))
-            solution, cov = curve_fit(
-                RB_leakage,
-                lengths,
-                comp_means,
-                sigma=comp_stds,
-                bounds=bounds,
-                p0=init_guess,
-            )
-            r_leak, A_leak, B_leak = solution
+            # solution, cov = curve_fit(
+            #     RB_leakage,
+            #     lengths,
+            #     comp_means,
+            #     sigma=comp_stds,
+            #     bounds=bounds,
+            #     p0=init_guess,
+            # )
+            # r_leak, A_leak, B_leak = solution
+            F = fitdata(RB_leakage, lengths, comp_means, init_guess)
+            r_leak, A_leak, B_leak = F.p
             fitted = True
         except Exception as message:
             print(message)
@@ -696,22 +734,24 @@ def leakage_RB(
         return A + B_leak * r_leak ** (len) + C * r ** (len)
 
     bounds = (0, 1)
-    init_guess = [0.9, 0.5, 0.5]
+    init_guess = [0.999, 0.5, 0.5]
 
     fitted = False
     while not fitted:
         try:
             surv_means = np.mean(surv_prob, axis=1)
             surv_stds = np.std(surv_prob, axis=1) / np.sqrt(len(surv_prob[0]))
-            solution, cov = curve_fit(
-                RB_surv,
-                lengths,
-                surv_means,
-                sigma=surv_stds,
-                bounds=bounds,
-                p0=init_guess,
-            )
-            r, A, C = solution
+            # solution, cov = curve_fit(
+            #     RB_surv,
+            #     lengths,
+            #     surv_means,
+            #     sigma=surv_stds,
+            #     bounds=bounds,
+            #     p0=init_guess,
+            # )
+            # r, A, C = solution
+            F = fitdata(RB_surv, lengths, surv_means, init_guess)
+            r, A, C = F.p
             fitted = True
         except Exception as message:
             print(message)
@@ -747,6 +787,26 @@ def leakage_RB(
     seepage = A_leak * (1 - r_leak)
     fid = 0.5 * (r + 1 - leakage)
     epc = 1 - fid
+    if plot:
+        surv_prob = np.array(surv_prob)
+        comp_surv = np.array(comp_surv)
+        fig, ax = plt.subplots(2, 1, figsize=(8, 6), sharex='col')
+        for index, m in enumerate(lengths):
+            ax[0].scatter(m * np.ones((num_seqs, 1)), surv_prob[index, :], s=6, c='r', marker='o')
+            ax[1].scatter(m * np.ones((num_seqs, 1)), 1-comp_surv[index, :], s=6, c='r', marker='o')
+        ax[0].plot(lengths, surv_means, 'bo', markersize=6)
+        ax[0].plot(lengths, RB_surv(lengths, r, A, C), 'bo-', ms=2, lw=1, label='fit')
+        ax[1].plot(lengths, 1-comp_means, 'bo', markersize=6)
+        ax[1].plot(lengths, 1-RB_leakage(lengths, r_leak, A_leak, B_leak), 'bo-', ms=2, lw=1, label='fit')
+        ax[0].set_title('repeat times={:.0f},epc={:.6f}'.format
+                        (num_seqs, epc))
+        ax[1].set_title('repeat times={:.0f},leakage={:.6f}'.format
+                        (num_seqs, leakage))
+        ax[1].set_xlabel('m-Number of Cliffords')
+        ax[0].set_ylabel('P0')
+        ax[1].set_ylabel('P2')
+        fig.show()
+
     return epc, leakage, seepage, r_leak, A_leak, B_leak, r, A, C
 
 
